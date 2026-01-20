@@ -1,0 +1,293 @@
+// pages/cards/cards.js
+import { generateCardsAI } from '../../services/ai';
+
+Page({
+  data: {
+    loading: true,
+    cards: [],
+    currentIndex: 0,
+    topic: ''
+  },
+
+  onLoad(options) {
+    this.loadCards();
+  },
+
+  async loadCards() {
+    const params = wx.getStorageSync('cardParams');
+    if (!params) {
+      wx.showToast({ title: '参数丢失', icon: 'error' });
+      return;
+    }
+
+    this.setData({ topic: params.topic });
+
+    try {
+      const res = await generateCardsAI(params);
+      if (res.success) {
+        this.setData({
+          cards: res.data,
+          loading: false
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      wx.showToast({ title: '生成失败', icon: 'none' });
+      this.setData({ loading: false });
+    }
+  },
+
+  toggleFlip() {
+    const index = this.data.currentIndex;
+    const key = `cards[${index}].isFlipped`;
+    this.setData({
+      [key]: !this.data.cards[index].isFlipped
+    });
+  },
+
+  nextCard() {
+    if (this.data.currentIndex < this.data.cards.length - 1) {
+      this.setData({
+        currentIndex: this.data.currentIndex + 1
+      });
+    }
+  },
+
+  prevCard() {
+    if (this.data.currentIndex > 0) {
+      this.setData({
+        currentIndex: this.data.currentIndex - 1
+      });
+    }
+  },
+
+  // 处理图片加载错误
+  handleImageError(e) {
+    console.warn('引流图片加载失败，请确保 images/gzh.png 存在', e);
+  },
+
+  // 保存当前卡片为图片
+  saveCardImage() {
+    wx.showLoading({ title: '正在生成图片...' });
+    
+    const query = wx.createSelectorQuery();
+    query.select('#shareCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        const canvas = res[0].node;
+        const ctx = canvas.getContext('2d');
+        
+        const dpr = wx.getSystemInfoSync().pixelRatio;
+        canvas.width = res[0].width * dpr;
+        canvas.height = res[0].height * dpr;
+        ctx.scale(dpr, dpr);
+
+        // 创建图片对象并加载
+        const img = canvas.createImage();
+        img.src = '/images/gzh.png';
+        
+        img.onload = () => {
+          // 图片加载成功，传入 drawCard
+          this.drawCard(ctx, res[0].width, res[0].height, img, () => {
+            this.saveCanvasToFile(canvas);
+          });
+        };
+
+        img.onerror = () => {
+          // 图片加载失败，依然绘制但不带图片
+          console.warn('Canvas 图片加载失败');
+          this.drawCard(ctx, res[0].width, res[0].height, null, () => {
+             this.saveCanvasToFile(canvas);
+          });
+        };
+      });
+  },
+
+  saveCanvasToFile(canvas) {
+    wx.canvasToTempFilePath({
+      canvas,
+      success: (fileRes) => {
+        wx.saveImageToPhotosAlbum({
+          filePath: fileRes.tempFilePath,
+          success: () => {
+            wx.hideLoading();
+            wx.showToast({ title: '已保存到相册', icon: 'success' });
+          },
+          fail: (err) => {
+            wx.hideLoading();
+            // 用户授权失败处理
+            if (err.errMsg.includes('auth deny')) {
+              wx.showModal({
+                title: '提示',
+                content: '需要保存到相册权限',
+                success: (modalRes) => {
+                  if (modalRes.confirm) wx.openSetting();
+                }
+              });
+            } else {
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+          }
+        });
+      },
+      fail: () => {
+        wx.hideLoading();
+        wx.showToast({ title: '导出失败', icon: 'none' });
+      }
+    });
+  },
+
+  drawCard(ctx, width, height, promoImg, callback) {
+    const card = this.data.cards[this.data.currentIndex];
+    const isFlipped = card.isFlipped;
+
+    // 背景
+    ctx.fillStyle = '#FFFBE6'; // 保持和页面背景一致的暖色
+    ctx.fillRect(0, 0, width, height);
+    
+    // 卡片区域（绘制一个圆角矩形）
+    const cardX = 20;
+    const cardY = 20;
+    const cardW = width - 40;
+    const cardH = height - 180; // 留出底部给图片
+
+    ctx.fillStyle = '#FFFFFF';
+    // 绘制圆角矩形路径
+    ctx.beginPath();
+    const r = 20;
+    ctx.moveTo(cardX + r, cardY);
+    ctx.lineTo(cardX + cardW - r, cardY);
+    ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + r, r);
+    ctx.lineTo(cardX + cardW, cardY + cardH - r);
+    ctx.arcTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH, r);
+    ctx.lineTo(cardX + r, cardY + cardH);
+    ctx.arcTo(cardX, cardY + cardH, cardX, cardY + cardH - r, r);
+    ctx.lineTo(cardX, cardY + r);
+    ctx.arcTo(cardX, cardY, cardX + r, cardY, r);
+    ctx.closePath();
+    
+    ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 10;
+    ctx.fill();
+    ctx.shadowColor = "transparent"; // 重置阴影
+
+    // 边框装饰 (根据正反面不同)
+    ctx.strokeStyle = isFlipped ? '#E3FDFD' : '#FFE3E3';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // 标题
+    // ctx.fillStyle = '#333333';
+    // ctx.font = 'bold 20px sans-serif';
+    // ctx.textAlign = 'center';
+    // ctx.fillText('快乐学习', width / 2, 50);
+
+    // 内容绘制
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    
+    // 简单的自动换行处理
+    const drawTextWrapped = (text, x, y, maxWidth, lineHeight) => {
+        ctx.fillStyle = '#333';
+        const words = text.split('');
+        let line = '';
+        let currentY = y;
+        
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n];
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[n];
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
+        return currentY + lineHeight;
+    };
+
+    let startY = cardY + 40;
+    const paddingX = cardX + 30;
+    const contentWidth = cardW - 60;
+
+    if (!isFlipped) {
+        // 问题面
+        ctx.fillStyle = '#FF6B6B';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('❓ Question', width / 2, startY);
+        
+        startY += 60;
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'left'; 
+        ctx.font = '22px sans-serif';
+        drawTextWrapped(card.question, paddingX, startY, contentWidth, 36);
+        
+        // 底部提示
+        ctx.fillStyle = '#AAA';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('扫描下方二维码关注我们', width / 2, cardY + cardH - 40);
+
+    } else {
+        // 答案面
+        ctx.fillStyle = '#4ECDC4';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('✅ Answer', width / 2, startY);
+        
+        startY += 50;
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'left';
+        ctx.font = '20px sans-serif';
+        let endY = drawTextWrapped(card.answer, paddingX, startY, contentWidth, 32);
+        
+        startY = endY + 30;
+        ctx.fillStyle = '#FF8E53';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText('💡 Tips', width / 2, startY);
+        
+        startY += 30;
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'left';
+        ctx.font = 'italic 18px sans-serif';
+        drawTextWrapped(card.tip, paddingX, startY, contentWidth, 28);
+    }
+
+    // 绘制底部引流图片
+    if (promoImg) {
+        // 图片宽高比
+        const imgRatio = promoImg.width / promoImg.height;
+        const targetW = width - 40; // 左右各留 20 边距
+        const targetH = targetW / imgRatio;
+        
+        // 限制最大高度
+        const maxH = 150;
+        let finalW = targetW;
+        let finalH = targetH;
+        
+        if (targetH > maxH) {
+            finalH = maxH;
+            finalW = finalH * imgRatio;
+        }
+
+        const imgX = (width - finalW) / 2;
+        const imgY = height - finalH - 20; // 距离底部 20
+        
+        ctx.drawImage(promoImg, imgX, imgY, finalW, finalH);
+    } else {
+        // 没有图片时绘制文字占位
+        ctx.fillStyle = '#999';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('关注公众号：技术人个人品牌训练营', width / 2, height - 50);
+    }
+
+    if (callback) callback();
+  }
+});

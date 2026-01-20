@@ -1,0 +1,59 @@
+<!--pages/cards/cards.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <view class="loading-icon"></view>
+    <text>🤖 AI 正在拼命生成中...</text>
+    <text class="loading-sub">Powered by DeepSeek</text>
+  </view>
+
+  <!-- 卡片展示区 -->
+  <view class="card-container" wx:else>
+    <view class="progress">
+      <text>第 {{currentIndex + 1}}</text> / {{cards.length}} 张
+    </view>
+
+    <view class="card-wrapper" bindtap="toggleFlip">
+      <view class="card {{cards[currentIndex].isFlipped ? 'flipped' : ''}}">
+        <!-- 正面：问题 -->
+        <view class="card-face card-front">
+          <view class="card-content">
+            <view class="card-label">❓ 问题</view>
+            <view class="card-text">{{cards[currentIndex].question}}</view>
+          </view>
+          <view class="card-hint">👆 点击翻转看答案</view>
+        </view>
+
+        <!-- 背面：答案 -->
+        <view class="card-face card-back">
+          <view class="card-content">
+            <view class="card-label answer-label">✅ 核心答案</view>
+            <view class="card-text answer-text">{{cards[currentIndex].answer}}</view>
+            
+            <view class="divider"></view>
+            
+            <view class="card-label tip-label">💡 拓展提示</view>
+            <view class="card-tip">{{cards[currentIndex].tip}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 引流图片展示 -->
+    <view class="promo-container">
+      <!-- 这里的图片路径需要用户实际放入文件 -->
+      <image class="promo-image" src="/images/gzh.png" mode="widthFix" binderror="handleImageError"></image>
+    </view>
+
+    <!-- 底部操作栏 -->
+    <view class="action-bar">
+      <view class="btn secondary" bindtap="prevCard" wx:if="{{currentIndex > 0}}">⬅️ 上一张</view>
+      <view class="btn primary" bindtap="nextCard" wx:if="{{currentIndex < cards.length - 1}}">下一张 ➡️</view>
+      <view class="btn success" bindtap="saveCardImage">📥 保存卡片</view>
+      <view class="btn finish" bindtap="goHome" wx:if="{{currentIndex === cards.length - 1}}">🎉 完成</view>
+    </view>
+  </view>
+  
+  <!-- 用于生成图片的 Canvas (尺寸调大以容纳底部图片) -->
+  <canvas type="2d" id="shareCanvas" class="share-canvas" style="width: 375px; height: 600px;"></canvas>
+</view>

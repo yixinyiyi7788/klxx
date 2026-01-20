@@ -1,0 +1,53 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">🚀 快乐学习</text>
+    <text class="subtitle">AI 帮你做学霸，考试不用怕</text>
+  </view>
+
+  <view class="form-card">
+    <!-- 学习主题 -->
+    <view class="form-item">
+      <view class="label">🎯 学习主题</view>
+      <input class="input" placeholder="输入你想学的（如：古诗词鉴赏）" value="{{topic}}" bindinput="handleTopicInput" placeholder-style="color: #B0B0B0;" />
+    </view>
+
+    <!-- 学科选择 -->
+    <view class="form-item">
+      <view class="label">📚 学科阶段</view>
+      <picker bindchange="bindSubjectChange" value="{{subjectIndex}}" range="{{subjects}}">
+        <view class="picker">
+          {{subjects[subjectIndex] || '请选择学科'}}
+          <text class="arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 难度选择 -->
+    <view class="form-item">
+      <view class="label">🔥 难度等级</view>
+      <view class="tags-container">
+        <block wx:for="{{difficulties}}" wx:key="*this">
+          <view class="tag {{difficulty === item ? 'active' : ''}}" bindtap="selectDifficulty" data-value="{{item}}">
+            {{item}}
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 题量选择 -->
+    <view class="form-item">
+      <view class="label">📝 生成题量: {{count}}题</view>
+      <slider min="5" max="20" step="1" value="{{count}}" activeColor="#FF6B6B" backgroundColor="#EEF1F5" block-color="#FF8E53" bindchange="handleCountChange" show-value/>
+    </view>
+
+    <!-- 生成按钮 -->
+    <button class="generate-btn" bindtap="generateCards" disabled="{{!topic}}">
+      ✨ 立即生成卡片 ✨
+    </button>
+  </view>
+  
+  <view class="tips">
+    <text>💡 小贴士：输入越具体，生成的卡片越精准哦~</text>
+  </view>
+</view>
