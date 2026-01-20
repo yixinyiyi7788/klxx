@@ -168,19 +168,37 @@ page {
 .answer-label {
   color: #4ECDC4;
   box-shadow: 0 4rpx 10rpx rgba(78, 205, 196, 0.1);
+  margin-bottom: 30rpx;
 }
 
 .answer-text {
   font-size: 34rpx;
   color: #333;
-  margin-bottom: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.question-review {
+  width: 100%;
+  font-size: 26rpx;
+  color: #8898AA;
+  text-align: left;
+  background: #F7F9FC;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  line-height: 1.5;
+}
+
+.review-label {
+  font-weight: bold;
+  color: #556270;
 }
 
 .divider {
   width: 80%;
   height: 4rpx;
   background: #E3FDFD;
-  margin: 20rpx 0;
+  margin: 10rpx 0 20rpx;
   border-radius: 2rpx;
 }
 
@@ -192,16 +210,34 @@ page {
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
   font-weight: 700;
+  box-shadow: none; /* Tip 标签去掉阴影 */
+  border: 1px solid #FF8E53;
 }
 
 .card-tip {
-  font-size: 30rpx;
+  font-size: 28rpx;
   color: #666;
   font-style: italic;
   background: #FFFBE6;
-  padding: 20rpx;
+  padding: 16rpx;
   border-radius: 16rpx;
   width: 100%;
+  margin-bottom: 30rpx;
+}
+
+.quote-container {
+  margin-top: auto; /* 推到底部 */
+  padding-top: 20rpx;
+  border-top: 1px dashed #E3FDFD;
+  width: 100%;
+}
+
+.quote-text {
+  font-size: 24rpx;
+  color: #FF6B6B;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  display: block;
 }
 
 /* 底部引流图区域 */
@@ -266,4 +302,14 @@ page {
   position: fixed;
   left: 100%;
   /* 隐藏在屏幕外 */
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60%;
+  color: #666;
+  font-size: 32rpx;
 }

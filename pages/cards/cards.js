@@ -14,10 +14,19 @@ Page({
   },
 
   async loadCards() {
-    const params = wx.getStorageSync('cardParams');
+    let params = wx.getStorageSync('cardParams');
+    
+    // 调试模式：如果参数丢失，自动补充默认参数
     if (!params) {
-      wx.showToast({ title: '参数丢失', icon: 'error' });
-      return;
+      console.warn('参数丢失，使用默认调试参数');
+      params = {
+        topic: '默认测试主题',
+        subject: '通用',
+        difficulty: '基础',
+        count: 5
+      };
+      // 提示用户但不阻断，方便调试
+      wx.showToast({ title: '使用调试数据', icon: 'none' });
     }
 
     this.setData({ topic: params.topic });
@@ -29,11 +38,19 @@ Page({
           cards: res.data,
           loading: false
         });
+      } else {
+         throw new Error('API 返回失败');
       }
     } catch (err) {
-      console.error(err);
-      wx.showToast({ title: '生成失败', icon: 'none' });
+      console.error('生成卡片失败:', err);
+      wx.showToast({ title: '生成失败，请重试', icon: 'none' });
+      // 确保 Loading 状态结束，防止界面卡死
       this.setData({ loading: false });
+      
+      // 延迟返回，让用户看到提示
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 2000);
     }
   },
 
@@ -178,18 +195,19 @@ Page({
     ctx.stroke();
 
     // 标题
-    // ctx.fillStyle = '#333333';
-    // ctx.font = 'bold 20px sans-serif';
-    // ctx.textAlign = 'center';
-    // ctx.fillText('快乐学习', width / 2, 50);
+    ctx.fillStyle = '#333333';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('轻学闪卡', width / 2, 50);
 
     // 内容绘制
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     
     // 简单的自动换行处理
-    const drawTextWrapped = (text, x, y, maxWidth, lineHeight) => {
-        ctx.fillStyle = '#333';
+    const drawTextWrapped = (text, x, y, maxWidth, lineHeight, color = '#333', font = '20px sans-serif') => {
+        ctx.fillStyle = color;
+        ctx.font = font;
         const words = text.split('');
         let line = '';
         let currentY = y;
@@ -210,7 +228,7 @@ Page({
         return currentY + lineHeight;
     };
 
-    let startY = cardY + 40;
+    let startY = cardY + 60; // 标题下面
     const paddingX = cardX + 30;
     const contentWidth = cardW - 60;
 
@@ -222,10 +240,8 @@ Page({
         ctx.fillText('❓ Question', width / 2, startY);
         
         startY += 60;
-        ctx.fillStyle = '#333';
         ctx.textAlign = 'left'; 
-        ctx.font = '22px sans-serif';
-        drawTextWrapped(card.question, paddingX, startY, contentWidth, 36);
+        drawTextWrapped(card.question, paddingX, startY, contentWidth, 36, '#333', '22px sans-serif');
         
         // 底部提示
         ctx.fillStyle = '#AAA';
@@ -241,22 +257,44 @@ Page({
         ctx.fillText('✅ Answer', width / 2, startY);
         
         startY += 50;
-        ctx.fillStyle = '#333';
         ctx.textAlign = 'left';
-        ctx.font = '20px sans-serif';
-        let endY = drawTextWrapped(card.answer, paddingX, startY, contentWidth, 32);
+        let endY = drawTextWrapped(card.answer, paddingX, startY, contentWidth, 32, '#333', '20px sans-serif');
         
-        startY = endY + 30;
+        // 问题回顾 (新增)
+        startY = endY + 20;
+        ctx.fillStyle = '#F7F9FC'; // 背景块
+        ctx.fillRect(paddingX - 10, startY, contentWidth + 20, 60); // 简单估算高度
+        
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#8898AA';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('回顾问题：', paddingX, startY + 10);
+        
+        // 限制问题回顾的显示长度，避免太长
+        let questionReview = card.question;
+        if (questionReview.length > 35) questionReview = questionReview.substring(0, 32) + '...';
+        
+        drawTextWrapped(questionReview, paddingX, startY + 35, contentWidth, 20, '#556270', '16px sans-serif');
+
+        startY += 70; // 跳过回顾区域
+
         ctx.fillStyle = '#FF8E53';
         ctx.textAlign = 'center';
         ctx.font = 'bold 20px sans-serif';
         ctx.fillText('💡 Tips', width / 2, startY);
         
         startY += 30;
-        ctx.fillStyle = '#666';
         ctx.textAlign = 'left';
-        ctx.font = 'italic 18px sans-serif';
-        drawTextWrapped(card.tip, paddingX, startY, contentWidth, 28);
+        endY = drawTextWrapped(card.tip, paddingX, startY, contentWidth, 28, '#666', 'italic 18px sans-serif');
+
+        // 励志语录 (新增)
+        if (card.quote) {
+             startY = cardY + cardH - 50; // 底部位置
+             ctx.textAlign = 'center';
+             ctx.fillStyle = '#FF6B6B';
+             ctx.font = 'italic 16px "Times New Roman", serif';
+             ctx.fillText(`“${card.quote}”`, width / 2, startY);
+        }
     }
 
     // 绘制底部引流图片
@@ -285,7 +323,7 @@ Page({
         ctx.fillStyle = '#999';
         ctx.font = '14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('关注公众号：技术人个人品牌训练营', width / 2, height - 50);
+        ctx.fillText('更多资讯请关注公众号：技术人个人品牌训练营', width / 2, height - 50);
     }
 
     if (callback) callback();

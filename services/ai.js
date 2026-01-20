@@ -17,6 +17,16 @@ const MOCK_KNOWLEDGE_BASE = {
       question: '等差数列通项公式？',
       answer: 'an = a1 + (n-1)d',
       tip: 'a1 为首项，d 为公差'
+    },
+    {
+      question: '三角形的面积计算公式有哪些？',
+      answer: '1. S = 1/2 * 底 * 高\n2. 海伦公式：S = √[p(p-a)(p-b)(p-c)]，其中 p=(a+b+c)/2\n3. S = 1/2 * ab * sinC',
+      tip: '基础题用底高公式，已知三边用海伦公式，已知两边一夹角用正弦公式'
+    },
+    {
+      question: '勾股定理的内容是什么？',
+      answer: '在直角三角形中，两直角边的平方和等于斜边的平方：a² + b² = c²',
+      tip: '常见勾股数：(3,4,5), (5,12,13), (6,8,10)'
     }
   ],
   '英语': [
@@ -29,16 +39,50 @@ const MOCK_KNOWLEDGE_BASE = {
       question: '虚拟语气 if I were you 的用法？',
       answer: '表示与现在事实相反的假设',
       tip: '主句通常用 would/should/could/might + 动词原形'
+    },
+    {
+      question: '现在完成时 (Present Perfect) 的构成？',
+      answer: 'have/has + 过去分词 (done)',
+      tip: '常与 already, yet, ever, never, just, before 等词连用'
     }
   ],
-  'default': [
+  '历史': [
     {
-      question: '示例问题：这是关于该主题的核心考点',
-      answer: '核心答案：关键点1、关键点2',
-      tip: '拓展提示：这里是记忆技巧或易错点提醒'
+      question: '秦始皇统一六国的时间？',
+      answer: '公元前 221 年',
+      tip: '秦朝是中国历史上第一个统一的中央集权的封建国家'
+    },
+    {
+      question: '洋务运动的口号是什么？',
+      answer: '自强、求富',
+      tip: '前期口号“自强”，后期口号“求富”'
+    }
+  ],
+  '通用': [
+    {
+      question: '如何高效管理时间？',
+      answer: '1. 列出任务清单 (To-Do List)\n2. 使用番茄工作法 (25分钟专注+5分钟休息)\n3. 区分“重要”与“紧急”任务',
+      tip: '要事第一，拒绝拖延'
+    },
+    {
+      question: '什么是批判性思维？',
+      answer: '一种理性的、清晰的思维方式，不盲从权威，善于独立思考、分析证据并得出结论。',
+      tip: '多问“为什么”、“证据是什么”、“有没有其他可能性”'
+    },
+    {
+      question: '光合作用的反应式？',
+      answer: 'CO₂ + H₂O + 光能 -> (叶绿体) -> (CH₂O) + O₂',
+      tip: '产物是有机物和氧气，场所是叶绿体，条件是光'
     }
   ]
 };
+
+const MOTIVATIONAL_QUOTES = [
+  '世上无难事，只要肯登攀。',
+  '学而不思则罔，思而不学则殆。',
+  '知之者不如好之者，好之者不如乐之者。',
+  '书山有路勤为径，学海无涯苦作舟。'
+];
 
 /**
  * 模拟调用 AI 接口生成卡片
@@ -56,45 +100,47 @@ export const generateCardsAI = (params) => {
     
     // 模拟网络延迟 1.5s
     setTimeout(() => {
-      const { topic, count } = params;
-      let resultList = [];
-      
-      // 简单的关键词匹配 Mock 数据
-      let sourceKey = 'default';
-      if (topic.includes('数学') || topic.includes('几何') || topic.includes('函数')) {
-        sourceKey = '数学';
-      } else if (topic.includes('英语') || topic.includes('单词') || topic.includes('语法')) {
-        sourceKey = '英语';
-      }
-      
-      const sourceList = MOCK_KNOWLEDGE_BASE[sourceKey];
-      
-      // 生成指定数量的卡片
-      for (let i = 0; i < count; i++) {
-        const item = sourceList[i % sourceList.length];
-        resultList.push({
-          id: i + 1,
-          question: item.question, // 实际场景下 AI 会根据 topic 生成不同问题
-          answer: item.answer,
-          tip: item.tip,
-          isFlipped: false // 前端状态：是否翻转
+      try {
+        const { topic, count } = params;
+        let resultList = [];
+        
+        // 简单的关键词匹配 Mock 数据
+        let sourceList;
+        if (topic.includes('数学') || topic.includes('几何') || topic.includes('函数')) {
+          sourceList = MOCK_KNOWLEDGE_BASE['数学'];
+        } else if (topic.includes('英语') || topic.includes('单词') || topic.includes('语法')) {
+          sourceList = MOCK_KNOWLEDGE_BASE['英语'];
+        } else {
+          // 2. 模糊/默认匹配：混合所有题库 + 通用库，确保返回有意义的内容
+          //    不再使用机械模板，而是随机展示高质量真题，模拟 AI "联想" 到的相关或拓展知识
+          const allTopics = Object.keys(MOCK_KNOWLEDGE_BASE).reduce((acc, key) => {
+            return acc.concat(MOCK_KNOWLEDGE_BASE[key]);
+          }, []);
+          sourceList = allTopics;
+        }
+        
+        // 生成指定数量的卡片
+        for (let i = 0; i < count; i++) {
+          const item = sourceList[i % sourceList.length];
+          const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+          
+          resultList.push({
+            id: i + 1,
+            question: item.question, // 实际场景下 AI 会根据 topic 生成不同问题
+            answer: item.answer,
+            tip: item.tip,
+            quote: randomQuote, // 随机励志语录
+            isFlipped: false // 前端状态：是否翻转
+          });
+        }
+  
+        resolve({
+          success: true,
+          data: resultList
         });
+      } catch (e) {
+        reject(e);
       }
-      
-      // 加上一些随机性，模拟 AI 针对特定主题的生成
-      if (sourceKey === 'default') {
-         resultList = resultList.map((item, index) => ({
-           ...item,
-           question: `[${topic}] 知识点 ${index + 1}：核心概念定义？`,
-           answer: `关于 ${topic} 的关键要素 ${index + 1}`,
-           tip: `掌握 ${topic} 的这个点很重要`
-         }));
-      }
-
-      resolve({
-        success: true,
-        data: resultList
-      });
     }, 1500);
   });
 };

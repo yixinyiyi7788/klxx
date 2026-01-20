@@ -1,7 +1,7 @@
 <!--pages/index/index.wxml-->
 <view class="container">
   <view class="header">
-    <text class="title">🚀 快乐学习</text>
+    <text class="title">🚀 轻学闪卡</text>
     <text class="subtitle">AI 帮你做学霸，考试不用怕</text>
   </view>
 
